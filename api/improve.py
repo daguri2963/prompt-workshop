@@ -11,6 +11,20 @@ MAX_BODY_BYTES = 4096
 MAX_DRAFT_CHARS = 1000
 PURPOSES = {"", "업무", "학습", "콘텐츠 제작", "일상"}
 FORMATS = {"", "짧은 문단", "목록", "표", "단계별 설명"}
+RESULT_FORMAT = {
+    "type": "json_schema",
+    "name": "improved_prompt_result",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "improved_prompt": {"type": "string"},
+            "reasons": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["improved_prompt", "reasons"],
+        "additionalProperties": False,
+    },
+}
 
 SYSTEM_INSTRUCTIONS = """당신은 한국어 AI 프롬프트 작성 코치입니다.
 사용자의 초안을 더 구체적이고 실행 가능한 프롬프트로 고치세요.
@@ -72,7 +86,9 @@ def improve(draft, purpose, result_format):
             model=os.environ.get("OPENAI_MODEL", "gpt-6-luna"),
             instructions=SYSTEM_INSTRUCTIONS,
             input=user_input,
-            max_output_tokens=650,
+            text={"format": RESULT_FORMAT},
+            reasoning={"effort": "none"},
+            max_output_tokens=1200,
         )
         return parse_ai_result(response.output_text)
     except APITimeoutError as exc:
