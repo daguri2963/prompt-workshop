@@ -26,6 +26,8 @@
 
 **화면 검사:** 로컬 미리보기를 데스크톱 1280px과 모바일 390px에서 열어 레이아웃을 확인함. 빈 입력 상태에서 “초안을 한 문장 이상 입력해 주세요.”라는 안내가 표시되는 것도 확인함. 화면 이미지는 `local-desktop.png`, `local-mobile.png`에 저장함.
 
+**배포 검증:** GitHub 저장소를 Vercel에 연결하고, 비밀 키는 Vercel Production 환경 변수에 직접 입력함. 공개 주소 `https://prompt-workshop-eight.vercel.app/`에서 예시 입력 “신입사원에게 보낼 환영 메일을 써줘”를 보냈고, 개선된 프롬프트와 이유 3개가 표시되는 것을 확인함. 공개 화면은 `deployed-desktop.png`, `deployed-mobile.png`, `ai-result.png`에 저장함.
+
 ## 4. 제출용 추가 증빙
 
 가능하면 이 대화 화면에서 과제 요구사항과 구현 결과가 보이는 스크린샷도 저장합니다. API 키 화면이나 값은 캡처하지 않습니다.

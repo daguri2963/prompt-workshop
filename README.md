@@ -6,7 +6,7 @@
 
 **GitHub 저장소:** https://github.com/daguri2963/prompt-workshop
 
-**배포 URL:** 배포 완료 후 여기에 기록
+**배포 URL:** https://prompt-workshop-eight.vercel.app/
 
 ## 기능
 
@@ -60,4 +60,6 @@ Vercel은 `.python-version`의 Python 3.12와 `requirements.txt`의 패키지를
 - GitHub 저장소
 - 이 README
 - [서비스 기획서](./기획서.md)
-- `evidence/`의 데스크톱·모바일·AI 작동 화면과 AI 코딩 도구 사용 증빙 (`local-` 이미지는 배포 전 미리보기이며, 배포 후 공개 URL에서 다시 촬영)
+- `evidence/deployed-desktop.png`, `deployed-mobile.png`, `ai-result.png`: 공개 URL에서 촬영한 화면
+- `evidence/AI-코딩-과정.md`: AI 코딩 도구를 사용한 실제 대화·검증 기록
+- `local-`로 시작하는 이미지는 배포 전 미리보기
