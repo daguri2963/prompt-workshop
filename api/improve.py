@@ -4,27 +4,14 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler
 
-from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
+import requests
 
 
 MAX_BODY_BYTES = 4096
 MAX_DRAFT_CHARS = 1000
 PURPOSES = {"", "업무", "학습", "콘텐츠 제작", "일상"}
 FORMATS = {"", "짧은 문단", "목록", "표", "단계별 설명"}
-RESULT_FORMAT = {
-    "type": "json_schema",
-    "name": "improved_prompt_result",
-    "strict": True,
-    "schema": {
-        "type": "object",
-        "properties": {
-            "improved_prompt": {"type": "string"},
-            "reasons": {"type": "array", "items": {"type": "string"}},
-        },
-        "required": ["improved_prompt", "reasons"],
-        "additionalProperties": False,
-    },
-}
+CODYSSEY_ENDPOINT = "https://copa.codyssey.kr/v1/chat/completions"
 
 SYSTEM_INSTRUCTIONS = """당신은 한국어 AI 프롬프트 작성 코치입니다.
 사용자의 초안을 더 구체적이고 실행 가능한 프롬프트로 고치세요.
@@ -59,6 +46,10 @@ def validate_payload(payload):
 
 
 def parse_ai_result(output_text):
+    if isinstance(output_text, str):
+        output_text = output_text.strip()
+        if output_text.startswith("```") and output_text.endswith("```"):
+            output_text = output_text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
     try:
         result = json.loads(output_text)
     except (ValueError, TypeError) as exc:
@@ -73,7 +64,8 @@ def parse_ai_result(output_text):
 
 
 def improve(draft, purpose, result_format):
-    if not os.environ.get("OPENAI_API_KEY"):
+    api_key = os.environ.get("CODYSSEY_API_KEY")
+    if not api_key:
         raise RequestError("서비스 설정이 아직 완료되지 않았습니다.", 503)
     user_input = (
         f"초안:\n{draft}\n\n"
@@ -81,26 +73,32 @@ def improve(draft, purpose, result_format):
         f"원하는 결과 형식: {result_format or 'AI가 적절히 선택'}"
     )
     try:
-        client = OpenAI(timeout=18.0, max_retries=0)
-        response = client.responses.create(
-            model=os.environ.get("OPENAI_MODEL", "gpt-6-luna"),
-            instructions=SYSTEM_INSTRUCTIONS,
-            input=user_input,
-            text={"format": RESULT_FORMAT},
-            reasoning={"effort": "none"},
-            max_output_tokens=1200,
+        response = requests.post(
+            CODYSSEY_ENDPOINT,
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "model": os.environ.get("CODYSSEY_MODEL", "gpt-5-mini"),
+                "messages": [
+                    {"role": "system", "content": SYSTEM_INSTRUCTIONS},
+                    {"role": "user", "content": user_input},
+                ],
+            },
+            timeout=18,
         )
-        return parse_ai_result(response.output_text)
-    except APITimeoutError as exc:
+        if response.status_code == 429:
+            raise RequestError("현재 요청이 많거나 사용 한도에 도달했어요. 잠시 후 다시 시도해 주세요.", 502)
+        if response.status_code in (401, 403):
+            raise RequestError("코디세이 API 키 또는 사용 권한을 확인해 주세요.", 503)
+        response.raise_for_status()
+        data = response.json()
+        output_text = data["choices"][0]["message"]["content"]
+        return parse_ai_result(output_text)
+    except requests.Timeout as exc:
         raise RequestError("AI 응답이 늦어지고 있어요. 잠시 후 다시 시도해 주세요.", 504) from exc
-    except APIConnectionError as exc:
+    except requests.ConnectionError as exc:
         raise RequestError("AI 서비스에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.", 502) from exc
-    except APIStatusError as exc:
-        if exc.status_code == 429:
-            message = "현재 요청이 많거나 사용 한도에 도달했어요. 잠시 후 다시 시도해 주세요."
-        else:
-            message = "AI 서비스에 문제가 생겼어요. 잠시 후 다시 시도해 주세요."
-        raise RequestError(message, 502) from exc
+    except (requests.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+        raise RequestError("AI 서비스 응답에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.", 502) from exc
 
 
 class handler(BaseHTTPRequestHandler):

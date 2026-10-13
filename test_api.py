@@ -2,21 +2,24 @@
 
 import importlib.util
 import json
+import os
 import sys
-import types
 import unittest
+from unittest.mock import Mock, patch
+
+import types
 
 
-class FakeOpenAIError(Exception):
+class FakeRequestError(Exception):
     pass
 
 
-fake_openai = types.ModuleType("openai")
-fake_openai.APIConnectionError = FakeOpenAIError
-fake_openai.APIStatusError = FakeOpenAIError
-fake_openai.APITimeoutError = FakeOpenAIError
-fake_openai.OpenAI = object
-sys.modules.setdefault("openai", fake_openai)
+fake_requests = types.ModuleType("requests")
+fake_requests.Timeout = FakeRequestError
+fake_requests.ConnectionError = FakeRequestError
+fake_requests.HTTPError = FakeRequestError
+fake_requests.post = lambda *args, **kwargs: None
+sys.modules.setdefault("requests", fake_requests)
 
 spec = importlib.util.spec_from_file_location("improve", "api/improve.py")
 improve = importlib.util.module_from_spec(spec)
@@ -45,6 +48,26 @@ class ApiTests(unittest.TestCase):
     def test_invalid_ai_result(self):
         with self.assertRaises(improve.RequestError):
             improve.parse_ai_result("not json")
+
+    def test_fenced_ai_result(self):
+        payload = '```json\n{"improved_prompt":"더 명확하게 작성해줘","reasons":["목표를 추가했어요"]}\n```'
+        self.assertEqual(improve.parse_ai_result(payload)["improved_prompt"], "더 명확하게 작성해줘")
+
+    def test_codyssey_request_uses_server_key(self):
+        completion = {"choices": [{"message": {"content": json.dumps({"improved_prompt": "발표 개요를 작성해줘", "reasons": ["목표를 밝혔어요"]})}}]}
+        response = Mock(status_code=200)
+        response.json.return_value = completion
+        with patch.dict(os.environ, {"CODYSSEY_API_KEY": "test-only-key"}), patch.object(fake_requests, "post", return_value=response) as post:
+            result = improve.improve("발표 준비", "학습", "목록")
+        self.assertEqual(result["improved_prompt"], "발표 개요를 작성해줘")
+        self.assertEqual(post.call_args.args[0], "https://copa.codyssey.kr/v1/chat/completions")
+        self.assertEqual(post.call_args.kwargs["json"]["model"], "gpt-5-mini")
+        self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "Bearer test-only-key")
+
+    def test_missing_key_has_friendly_error(self):
+        with patch.dict(os.environ, {"CODYSSEY_API_KEY": ""}), self.assertRaises(improve.RequestError) as caught:
+            improve.improve("발표 준비", "", "")
+        self.assertEqual(caught.exception.status, 503)
 
 
 if __name__ == "__main__":

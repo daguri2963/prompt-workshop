@@ -26,7 +26,7 @@
 | 비밀 키를 사용하는 AI 요청 | Python Vercel Function | `api/improve.py` |
 | Python 패키지 | pip | `requirements.txt` |
 
-흐름: **사용자 입력 → JavaScript `fetch('/api/improve')` → Python 함수 → OpenAI API → JSON 응답 → 화면 표시**. 브라우저에는 API 키가 전달되지 않습니다.
+흐름: **사용자 입력 → JavaScript `fetch('/api/improve')` → Python 함수 → 코디세이 OpenAI 호환 API → JSON 응답 → 화면 표시**. 브라우저에는 API 키가 전달되지 않습니다.
 
 ## 로컬 실행
 
@@ -42,15 +42,17 @@ python -m http.server 8000
 
 1. 이 프로젝트를 **새 GitHub 저장소**에 올립니다.
 2. [Vercel](https://vercel.com/new)에서 GitHub 저장소를 가져옵니다. 프레임워크는 `Other`를 선택하고 루트 디렉터리는 프로젝트 루트로 둡니다.
-3. 배포 전에 프로젝트의 **Settings → Environment Variables**에서 `OPENAI_API_KEY`를 등록합니다. 키는 OpenAI 대시보드에서 복사하여 **Vercel 설정 화면에 직접** 붙여 넣으세요. 채팅, 코드, 문서, 스크린샷에는 키를 넣지 않습니다.
-4. 필요할 때 `OPENAI_MODEL`로 모델을 바꿀 수 있습니다. 기본값은 `gpt-6-luna`입니다.
+3. 배포 전에 프로젝트의 **Settings → Environment Variables**에서 `CODYSSEY_API_KEY`를 등록합니다. 코디세이에서 받은 가상 키를 **Vercel 설정 화면에 직접** 붙여 넣으세요. 채팅, 코드, 문서, 스크린샷에는 키를 넣지 않습니다.
+4. 필요할 때 `CODYSSEY_MODEL`로 모델을 바꿀 수 있습니다. 코디세이 예시와 같은 기본값은 `gpt-5-mini`입니다.
 5. 배포 후 공개 URL에서 초안을 입력해 결과가 나오는지 확인합니다. 환경 변수 변경 후에는 새 배포가 필요합니다.
 
 Vercel은 `.python-version`의 Python 3.12와 `requirements.txt`의 패키지를 사용합니다. 로컬 컴퓨터의 Python 3.15 설치와 별개입니다.
 
 ## 비용과 보안
 
-OpenAI API 호출은 사용량에 따라 과금될 수 있습니다. 서버에서 입력과 출력 길이, 응답 시간을 제한합니다. 공개 서비스는 누구나 요청할 수 있으므로 OpenAI 프로젝트의 **사용량 한도**를 설정하고 사용량을 확인하세요. `OPENAI_API_KEY`를 GitHub에 올리지 마세요. `.env` 파일은 Git에서 제외됩니다.
+코디세이 키의 사용 가능 모델, 사용 한도, 공개 서비스 허용 범위를 확인하세요. 공개 서비스는 누구나 요청할 수 있습니다. 서버는 입력 길이와 응답 시간을 제한하고, 브라우저에서 버튼 연속 클릭을 막습니다. `CODYSSEY_API_KEY`를 GitHub에 올리지 마세요. `.env` 파일은 Git에서 제외됩니다.
+
+현재 키 하나는 코디세이 API에만 연결됩니다. 같은 서비스의 다른 모델은 코디세이 전체 장애에 대한 백업이 되지 않습니다. 독립적인 백업 제공자를 사용하려면 별도의 API 키와 사용 허가가 필요합니다.
 
 ## 제출 자료
 
